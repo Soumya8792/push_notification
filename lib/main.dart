@@ -1,23 +1,30 @@
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:fcm_push_kit/fcm_push_kit.dart';
 import 'package:flutter/material.dart';
+import 'firebase_options.dart';
 import 'router/app_router.dart';
-import 'services/notification_service.dart';
+
+@pragma('vm:entry-point')
+Future<void> backgroundMessageHandler(RemoteMessage message) async {
+  await fcmPushKitDefaultBackgroundHandler(message);
+  debugPrint('Background message: ${message.messageId} ${message.data}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Firebase (Requires google-services.json / GoogleService-Info.plist or DefaultFirebaseOptions)
   try {
-    await Firebase.initializeApp();
+    await FcmPushKit.instance.initialize(
+      firebaseOptions: DefaultFirebaseOptions.currentPlatform,
+      config: const FcmPushKitConfig(
+        topics: ['all'],
+        backgroundHandler: backgroundMessageHandler,
+        enableLogs: true,
+      ),
+    );
+    AppRouter.setupNotificationDeepLinkListener();
   } catch (e) {
-    debugPrint('Firebase not configured yet: $e. Add google-services.json / GoogleService-Info.plist via flutterfire configure.');
+    debugPrint('Firebase not configured yet: $e. Run `flutterfire configure`.');
   }
-
-  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
-  await NotificationService.instance.initialize();
-  AppRouter.setupNotificationDeepLinkListener();
 
   runApp(const MyApp());
 }
@@ -33,8 +40,11 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NotificationService.instance.checkInitialMessage();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!FcmPushKit.instance.isInitialized) return;
+      final tap = await FcmPushKit.instance.getInitialTap();
+      final location = tap?.location;
+      if (location != null) AppRouter.router.go(location);
     });
   }
 

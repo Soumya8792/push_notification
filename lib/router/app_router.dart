@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import '../services/notification_service.dart';
+import 'package:fcm_push_kit/fcm_push_kit.dart';
 
 final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
@@ -28,9 +29,10 @@ class AppRouter {
   );
 
   static void setupNotificationDeepLinkListener() {
-    NotificationService.instance.deepLinkStream.listen((String targetRoute) {
-      if (rootNavigatorKey.currentContext != null) {
-        router.go(targetRoute);
+    FcmPushKit.instance.onNotificationTap.listen((tap) {
+      final location = tap.location;
+      if (location != null && rootNavigatorKey.currentContext != null) {
+        router.go(location);
       }
     });
   }
@@ -59,15 +61,25 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
               ElevatedButton.icon(
                 onPressed: () async {
-                  final token = await NotificationService.instance.getFcmToken();
+                  final token = FcmPushKit.instance.isInitialized
+                      ? await FcmPushKit.instance.getToken()
+                      : null;
+                  debugPrint('FCM TOKEN: $token');
+                  if (token != null) {
+                    await Clipboard.setData(ClipboardData(text: token));
+                  }
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('FCM Token: ${token ?? "Check Console"}')),
+                      SnackBar(
+                        content: Text(token == null
+                            ? 'No FCM token yet. Is Firebase configured?'
+                            : 'FCM token copied to clipboard'),
+                      ),
                     );
                   }
                 },
                 icon: const Icon(Icons.key),
-                label: const Text('Log FCM Token'),
+                label: const Text('Copy FCM Token'),
               ),
             ],
           ),
