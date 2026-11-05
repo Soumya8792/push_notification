@@ -36,6 +36,7 @@ dependencies:
   fcm_push_kit:
     path: packages/fcm_push_kit
   go_router: ^15.1.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

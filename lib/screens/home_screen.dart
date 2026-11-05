@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../services/notification_log.dart';
 
@@ -80,6 +81,46 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (token == null) return;
     await Clipboard.setData(ClipboardData(text: token));
     _snack('FCM token copied to clipboard');
+  }
+
+  // Lets the token be scanned onto another phone, since the test device
+  // usually isn't logged in to anything you could paste it into.
+  void _showTokenQr() {
+    final token = _token;
+    if (token == null) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Scan FCM token'),
+        content: SizedBox(
+          width: 280,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // White background keeps the code scannable in dark mode.
+              Container(
+                color: Colors.white,
+                padding: const EdgeInsets.all(12),
+                child: QrImageView(data: token, size: 240),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Scan with another phone, then paste the token in Firebase '
+                'console → Send test message.',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _toggleTopic(String topic, bool subscribe) async {
@@ -249,6 +290,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _token == null ? null : _showTokenQr,
+            icon: const Icon(Icons.qr_code_2),
+            label: const Text('Show as QR code'),
+          ),
         ),
       ],
     );
