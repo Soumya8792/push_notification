@@ -5,7 +5,7 @@ repository: https://github.com/Soumya8792/push_notification/tree/main/packages/f
 publish_to: none
 
 environment:
-  sdk: ^3.13.4
+  sdk: ^3.13.2
   flutter: ">=1.17.0"
 
 dependencies:

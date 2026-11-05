@@ -56,13 +56,12 @@ class DefaultFirebaseOptions {
     projectId: 'push-notification-bfe0b',
     storageBucket: 'push-notification-bfe0b.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCYqx_DtWkOn60gdDQPqtuJ04E5eYFG34k',
-    appId: '1:845589201307:ios:fcceec67b87d58bb53613e',
+    appId: '1:845589201307:ios:45bd1eb50751face53613e',
     messagingSenderId: '845589201307',
     projectId: 'push-notification-bfe0b',
     storageBucket: 'push-notification-bfe0b.firebasestorage.app',
-    iosBundleId: 'com.example.pushNotificationDemo',
+    iosBundleId: 'com.soumya.pushDemo',
   );
 }
