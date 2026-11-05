@@ -92,7 +92,8 @@ class FcmPushKit {
 
     FirebaseMessaging.onMessage.listen(_onForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(
-      (message) => _emitTap(message.data, TapSource.background, message.messageId),
+      (message) =>
+          _emitTap(message.data, TapSource.background, message.messageId),
     );
     _fcm.onTokenRefresh.listen((token) => _log('FCM token refreshed: $token'));
 
@@ -116,6 +117,10 @@ class FcmPushKit {
     return settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
   }
+
+  /// Current permission state without prompting the user.
+  Future<AuthorizationStatus> getPermissionStatus() async =>
+      (await _fcm.getNotificationSettings()).authorizationStatus;
 
   /// Current FCM registration token, or null if unavailable (e.g. iOS
   /// simulator without APNs, or no network).
@@ -170,6 +175,38 @@ class FcmPushKit {
     return null;
   }
 
+  /// Shows a notification from the app itself (no server involved). Tapping
+  /// it is delivered through [onNotificationTap] like a push notification, so
+  /// [data] can carry a route, e.g. `{'route': '/details', 'id': '42'}`.
+  Future<void> showNotification({
+    String? title,
+    String? body,
+    Map<String, dynamic> data = const {},
+    int? id,
+  }) async {
+    await _localNotifications.show(
+      id: id ?? DateTime.now().millisecondsSinceEpoch.remainder(1 << 31),
+      title: title,
+      body: body,
+      notificationDetails: NotificationDetails(
+        android: AndroidNotificationDetails(
+          _config.androidChannelId,
+          _config.androidChannelName,
+          channelDescription: _config.androidChannelDescription,
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: _config.androidSmallIcon,
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+
   Future<void> _initLocalNotifications() async {
     await _localNotifications.initialize(
       settings: InitializationSettings(
@@ -210,21 +247,11 @@ class FcmPushKit {
     if (!_config.showForegroundNotifications || notification == null) return;
     if (defaultTargetPlatform != TargetPlatform.android) return;
 
-    await _localNotifications.show(
+    await showNotification(
       id: message.messageId?.hashCode ?? message.hashCode,
       title: notification.title,
       body: notification.body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          _config.androidChannelId,
-          _config.androidChannelName,
-          channelDescription: _config.androidChannelDescription,
-          importance: Importance.max,
-          priority: Priority.high,
-          icon: _config.androidSmallIcon,
-        ),
-      ),
-      payload: jsonEncode(message.data),
+      data: message.data,
     );
   }
 
